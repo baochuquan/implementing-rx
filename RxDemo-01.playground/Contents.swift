@@ -1,3 +1,4 @@
+import Foundation
 
 // MARK: - Event
 
@@ -64,8 +65,11 @@ let observable = Observable<Int> { (observer) in
     observer.on(event: .next(2))
     print("send 3")
     observer.on(event: .next(3))
-    print("send completed")
-    observer.on(event: .completed)
+    
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        print("send completed")
+        observer.on(event: .completed)
+    }
 }
 
 let observer = Observer<Int> { (event) in
@@ -80,6 +84,3 @@ let observer = Observer<Int> { (event) in
 }
 
 observable.subscribe(observer: observer)
-// observable.map({ $0 * 2 }).subscribe(observer: observer)
-
-// 那么如何加入操作符？
