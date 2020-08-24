@@ -43,7 +43,7 @@ protocol ObservableType {
 }
 
 class Observable<Element>: ObservableType {
-    // 定义 事件将如何生成 的闭包
+    // 定义 发布事件 的闭包
     private let _eventGenerator: (Observer<Element>) -> Void
     
     init(_ eventGenerator: @escaping (Observer<Element>) -> Void) {

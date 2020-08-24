@@ -65,7 +65,7 @@ extension ObservableType {
 }
 
 class Observable<Element>: ObservableType {
-    // 定义 事件将如何生成 的闭包
+    // 定义 发布事件 的闭包
     private let _eventGenerator: (Observer<Element>) -> Disposable
     
     init(_ eventGenerator: @escaping (Observer<Element>) -> Disposable) {
@@ -83,7 +83,7 @@ class Observable<Element>: ObservableType {
 // MARK: - Disposable
 
 protocol Disposable {
-    // 取消订阅时附带操作
+    // 取消订阅
     func dispose()
 }
 
@@ -142,7 +142,7 @@ class Sink<O: ObserverType>: Disposable {
     func run() {
         // 通过一个中间 Observer 对原始 Observer 进行封装，用于过滤事件的传递
         let observer = Observer<O.Element>(forward)
-        // 执行事件生成器
+        // 执行发布事件
         // 将返回值 Disposable 加入到 CompositeDisposable 中进行管理
         _composite.add(disposable: _eventGenerator(observer))
     }

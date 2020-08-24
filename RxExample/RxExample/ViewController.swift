@@ -28,7 +28,7 @@ class ViewController: UIViewController {
             return Disposables.create()
         }
 
-        observable.subscribe { (event) in
+        observable.map { $0 + 2}.filter { $0 > 3 }.subscribe { (event) in
             switch (event) {
             case .next(let value):
                 print("receive \(value)")

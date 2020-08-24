@@ -43,7 +43,7 @@ protocol ObservableType {
 }
 
 class Observable<Element>: ObservableType {
-    // 定义 事件将如何生成 的闭包
+    // 定义 发布事件 的闭包
     private let _eventGenerator: (Observer<Element>) -> Disposable
     
     init(_ eventGenerator: @escaping (Observer<Element>) -> Disposable) {
@@ -75,7 +75,7 @@ class Observable<Element>: ObservableType {
 // MARK: - Disposable
 
 protocol Disposable {
-    // 取消订阅时附带操作
+    // 取消订阅
     func dispose()
 }
 
