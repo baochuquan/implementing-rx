@@ -1,3 +1,12 @@
+//
+//  ViewController.swift
+//  RxDemoTest
+//
+//  Created by baochuquan on 2020/8/27.
+//  Copyright © 2020 baochuquan. All rights reserved.
+//
+
+import UIKit
 import Foundation
 
 // MARK: - Event
@@ -47,7 +56,7 @@ extension ObservableType {
         return Observable<Result> { (observer) in   //
             // 此闭包可看成是一个 eventGenerator
             return self.subscribe(observer: Observer { (event) in
-                print("Map observer = \(observer)")
+                print("Map observer = \(observer)") // observer 是 sink 中的 _forward，即原始 observer
                 switch event {
                 case .next(let element):
                     do {
@@ -168,39 +177,50 @@ class Sink<O: ObserverType>: Disposable {
     }
 }
 
-// MARK: - Test
+class ViewController: UIViewController {
 
-let observable = Observable<Int> { (observer) -> Disposable in  // observer 为 MapObserver
-    print("send 0")
-    observer.on(event: .next(0))
-    print("send 1")
-    observer.on(event: .next(1))
-    print("send 2")
-    observer.on(event: .next(2))
-    print("send 3")
-    observer.on(event: .next(3))
-    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-        print("send completed")
-        observer.on(event: .completed)
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Do any additional setup after loading the view.
+        // MARK: - Test
+
+        let observable = Observable<Int> { (observer) -> Disposable in  // observer 为 mapObserver
+            print("send 0")
+            observer.on(event: .next(0))
+            print("send 1")
+            observer.on(event: .next(1))
+            print("send 2")
+            observer.on(event: .next(2))
+            print("send 3")
+            observer.on(event: .next(3))
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                print("send completed")
+                observer.on(event: .completed)
+            }
+            return AnonymousDisposable {
+                print("dispose")
+            }
+        }
+
+        let observer = Observer<Int> { (event) in
+            switch event {
+            case .next(let value):
+                print("recive \(value)")
+            case .error(let error):
+                print("recive \(error)")
+            case .completed:
+                print("recive completed")
+            }
+        }
+
+        let disposable = observable.map { $0 * 2 }.map { $0 + 1 }.subscribe(observer: observer)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            disposable.dispose()
+        }
+
     }
-    return AnonymousDisposable {
-        print("dispose")
-    }
+
+    
 }
 
-let observer = Observer<Int> { (event) in
-    switch event {
-    case .next(let value):
-        print("recive \(value)")
-    case .error(let error):
-        print("recive \(error)")
-    case .completed:
-        print("recive completed")
-    }
-}
-
-let disposable = observable.map { $0 * 2 }.map { $0 + 1 }.subscribe(observer: observer)
-
-DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-    disposable.dispose()
-}
