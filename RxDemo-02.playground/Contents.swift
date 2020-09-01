@@ -53,10 +53,11 @@ class Observable<Element>: ObservableType {
     // 实现 订阅操作 的协议，内部生成事件
     func subscribe<O: ObserverType>(observer: O) -> Disposable where O.Element == Element {
         let composite = CompositeDisposable()
-        // 通过一个中间 Observer 对原始 Observer 进行封装，用于过滤事件的传递。
+        // 通过一个中间 Observer 接收原始事件
+        // 根据 CompositionDisposable 的状态决定是否传递给原始 Observer
         let disposable = _eventGenerator(Observer { (event) in
             guard !composite.isDisposed else { return }
-            // 事件传递给外部 observer
+            // 事件传递给原始 observer
             observer.on(event: event)
             // 通过 composite 管理 error、completed 时，自动取消订阅
             switch event {

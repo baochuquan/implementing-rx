@@ -82,7 +82,7 @@ class CompositeDisposable: Disposable {
     // 可用于管理一组 Disposable 的 CompositeDisposable
 
     // 判断是否已销毁的标志位
-    private(set) var isDisposed: Bool = false
+    private var isDisposed: Bool = false
     // 管理一组 Disposable
     private var disposables: [Disposable] = []
     
@@ -118,7 +118,8 @@ class Sink<O: ObserverType>: Disposable {
     }
     
     func run() {
-        // 通过一个中间 Observer 对原始 Observer 进行封装，用于过滤事件的传递
+        // 通过一个中间 Observer 接收原始事件
+        // 根据 CompositionDisposable 的状态决定是否传递给原始 Observer
         let observer = Observer<O.Element>(forward)
         // 执行发布事件
         // 将返回值 Disposable 加入到 CompositeDisposable 中进行管理

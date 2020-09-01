@@ -83,6 +83,24 @@ class Observable<Element>: ObservableType {
     }
 }
 
+class Producer<Element>: Observable<Element> {
+}
+
+class MapObservable<SourceType, ResultType>: Producer<ResultType> {
+    typealias Transform = (SourceType) throws -> ResultType
+    private let _forward: Observable<SourceType>
+    private let _transform: Transform
+    
+    init(forward: Observable<SourceType>, transform: @escaping Transform) {
+        self._forward = forward
+        self._transform = transform
+    }
+    
+    override func run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        
+    }
+}
+
 // MARK: - Disposable
 
 protocol Disposable {
@@ -170,6 +188,31 @@ class Sink<O: ObserverType>: Disposable {
         _composite.dispose()
     }
 }
+
+class MapSink<SourceType, O: ObserverType>: Sink<Observer>, ObserverType {
+    
+}
+
+// MARK: - Cancelable
+
+protocol Cancelable : Disposable {
+    /// Was resource disposed.
+    var isDisposed: Bool { get }
+}
+
+//private class SinkDisposer: Cancelable {
+//    private var _isDisposed: Bool
+//    private var _sink: Disposable?
+//    private var _
+//
+//    var isDisposed: Bool {
+//        return _isDisposed
+//    }
+//
+//    func dispose() {
+//        sink.dis
+//    }
+//}
 
 // MARK: - Test
 
