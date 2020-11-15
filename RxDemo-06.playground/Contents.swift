@@ -52,16 +52,7 @@ protocol ObservableType {
     func asObservable() -> Observable<Element>
 }
 
-
-
 class Observable<Element>: ObservableType {
-    // 抽象类
-//    // 定义 发布事件 的闭包，有子类来定义
-//    private let _eventGenerator: (Observer<Element>) -> Disposable
-//
-//    init(_ eventGenerator: @escaping (Observer<Element>) -> Disposable) {
-//        _eventGenerator = eventGenerator
-//    }
 
     // 实现 订阅操作 的协议，内部生成事件
     func subscribe<O: ObserverType>(observer: O) -> Disposable where O.Element == Element {
@@ -76,10 +67,13 @@ class Observable<Element>: ObservableType {
 class Producer<Element>: Observable<Element> {
     // 实现 订阅操作 的协议，内部生成事件
     override func subscribe<O: ObserverType>(observer: O) -> Disposable where O.Element == Element {
-        return run(observer: observer)
+        let disposer = Disposer()
+        let sinkAndSubscription = self.run(observer: observer, subscription: disposer)
+        disposer.setSinkAndSubscription(sink: sinkAndSubscription.sink, subscription: sinkAndSubscription.subscription)
+        return disposer
     }
     
-    func run<O: ObserverType>(observer: O) -> Disposable where O.Element == Element {
+    func run<O: ObserverType>(observer: O, subscription: Disposable) -> (sink: Disposable, subscription: Disposable) where O.Element == Element {
         rxAbstractMethod()
     }
 }
@@ -132,53 +126,14 @@ class CompositeDisposable: Disposable {
     }
 }
 
-//class Sink<O: ObserverType>: Disposable {
-//    private var _disposed: Bool = false
-//    private let _forward: O
-//    private let _eventGenerator: (Observer<O.Element>) -> Disposable
-//    private let _composite = CompositeDisposable()
-//
-//    init(forward: O, eventGenerator: @escaping (Observer<O.Element>) -> Disposable) {
-//        _forward = forward
-//        _eventGenerator = eventGenerator
-//    }
-//
-//    func run() {
-//        // 通过一个中间 Observer 接收原始事件
-//        // 根据 CompositionDisposable 的状态决定是否传递给原始 Observer
-//        let observer = Observer<O.Element>(forward)
-//        // 执行发布事件
-//        // 将返回值 Disposable 加入到 CompositeDisposable 中进行管理
-//        _composite.add(disposable: _eventGenerator(observer))
-//    }
-//
-//    private func forward(event: Event<O.Element>) {
-//        guard !_disposed else { return }
-//        // 事件传递给原始 observer
-//        print("Sink _forward = \(_forward)")
-//        _forward.on(event: event)
-//        // 通过 composite 管理 error、completed 时，自动取消订阅
-//        switch event {
-//        case .completed, .error(_):
-//            dispose()
-//        default:
-//            break
-//        }
-//    }
-//
-//    func dispose() {
-//        _disposed = true
-//        _composite.dispose()
-//    }
-//}
-
 class Sink<O: ObserverType>: Disposable {
     private var _disposed: Bool = false
     private let _forward: O
     private let _composite = CompositeDisposable()
     
-    init(forward: O) {
+    init(forward: O, subscription: Disposable) {
         _forward = forward
+        _composite.add(disposable: subscription)
     }
     
     func forward(event: Event<O.Element>) {
@@ -201,6 +156,31 @@ class Sink<O: ObserverType>: Disposable {
     }
 }
 
+class Disposer: Disposable {
+    // 由于 Disposable 的管理，内部会出现循环引用，所以使用 _disposed 标志位来断开对 dispose() 方法的循环调用
+    private var _disposed: Bool = false
+    private var sink: Disposable?
+    private var subscription: Disposable?
+    
+    func setSinkAndSubscription(sink: Disposable, subscription: Disposable) {
+        self.sink = sink
+        self.subscription = subscription
+    }
+    
+    func dispose() {
+        guard !_disposed else { return }
+        if let sink = self.sink, let subscription = self.subscription {
+            _disposed = true
+            sink.dispose()
+            subscription.dispose()
+            self.sink = nil
+            self.subscription = nil
+        }
+        
+    }
+}
+
+
 extension ObservableType {
     static func create(_ eventGenerator: @escaping (Observer<Element>) -> Disposable) -> Observable<Element> {
         return AnonymousObservable(eventGenerator: eventGenerator)
@@ -211,8 +191,8 @@ extension ObservableType {
 class AnonymousObserver<O: ObserverType>: Sink<O>, ObserverType {
     typealias Element = O.Element
     
-    override init(forward: O) {
-        super.init(forward: forward)
+    override init(forward: O, subscription: Disposable) {
+        super.init(forward: forward, subscription: subscription)
     }
     
     func on(event: Event<Element>) {
@@ -238,10 +218,10 @@ class AnonymousObservable<Element>: Producer<Element> {
         self._eventGenerator = eventGenerator
     }
     
-    override func run<O>(observer: O) -> Disposable where Element == O.Element, O : ObserverType {
-        let sink =  AnonymousObserver(forward: observer)
-        sink.run(parent: self)
-        return sink
+    override func run<O: ObserverType>(observer: O, subscription: Disposable) -> (sink: Disposable, subscription: Disposable) where O.Element == Element {
+        let sink = AnonymousObserver(forward: observer, subscription: subscription)
+        let subscription = sink.run(parent: self)
+        return (sink: sink, subscription: subscription)
     }
 }
 
@@ -258,9 +238,9 @@ class MapObserver<Source, Result, O: ObserverType>: Sink<O>, ObserverType {
     typealias Transform = (Source) throws -> Result
     private let _transform: Transform
     
-    init(forward: O, transform: @escaping Transform) {
+    init(forward: O, subscription: Disposable, transform: @escaping Transform) {
         self._transform = transform
-        super.init(forward: forward)
+        super.init(forward: forward, subscription: subscription)
     }
     
     func on(event: Event<Element>) {
@@ -290,12 +270,15 @@ class MapObservable<Source, Result>: Producer<Result> {
         self._transform = transform
     }
 
-    override func run<O: ObserverType>(observer: O) -> Disposable where Result == O.Element {
-        let sink = MapObserver(forward: observer, transform: self._transform)
-        self._source.subscribe(observer: sink)
-        return sink
+    override func run<O: ObserverType>(observer: O, subscription: Disposable) -> (sink: Disposable, subscription: Disposable) where O.Element == Element {
+        let sink = MapObserver(forward: observer, subscription: subscription, transform: self._transform)
+        let subscription = self._source.subscribe(observer: sink)
+        return (sink: sink, subscription: subscription)
     }
 }
+
+
+
 
 // MARK: - Test
 
