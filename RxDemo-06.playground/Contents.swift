@@ -169,6 +169,7 @@ class Disposer: Disposable {
     
     func dispose() {
         guard !_disposed else { return }
+        print("HHHH: disposer \(self)")
         if let sink = self.sink, let subscription = self.subscription {
             _disposed = true
             sink.dispose()
@@ -201,8 +202,10 @@ class AnonymousObserver<O: ObserverType>: Sink<O>, ObserverType {
             self.forward(event: .next(element))
         case .error(let error):
             self.forward(event: .error(error))
+            self.dispose()
         case .completed:
             self.forward(event: .completed)
+            self.dispose()
         }
     }
     
@@ -254,8 +257,10 @@ class MapObserver<Source, Result, O: ObserverType>: Sink<O>, ObserverType {
             }
         case .error(let error):
             self.forward(event: .error(error))
+            self.dispose()
         case .completed:
             self.forward(event: .completed)
+            self.dispose()
         }
     }
 }
@@ -289,6 +294,8 @@ let observable = Observable<Int>.create { (observer) -> Disposable in  // observ
     observer.on(event: .next(1))
     print("send 2")
     observer.on(event: .next(2))
+    print("send complete")
+    observer.on(event: .completed)
     print("send 3")
     observer.on(event: .next(3))
     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
@@ -313,6 +320,6 @@ let observer = Observer<Int> { (event) in
 
 let disposable = observable.map { $0 * 2 }.subscribe(observer: observer)
 
-DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-    disposable.dispose()
-}
+//DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+//    disposable.dispose()
+//}

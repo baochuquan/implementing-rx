@@ -221,8 +221,10 @@ class AnonymousObserver<O: ObserverType>: Sink<O>, ObserverType {
             self.forward(event: .next(element))
         case .error(let error):
             self.forward(event: .error(error))
+            self.dispose()
         case .completed:
             self.forward(event: .completed)
+            self.dispose()
         }
     }
     
@@ -274,8 +276,10 @@ class MapObserver<Source, Result, O: ObserverType>: Sink<O>, ObserverType {
             }
         case .error(let error):
             self.forward(event: .error(error))
+            self.dispose()
         case .completed:
             self.forward(event: .completed)
+            self.dispose()
         }
     }
 }
