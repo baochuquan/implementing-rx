@@ -1,9 +1,3 @@
 手动实现 RxSwift 的核心部分
 
-|项目|发布事件|监听事件|取消订阅|map 操作符|备注|
-|:---:|:---:|:---:|:---:|:---:|:---:|
-|RxDemo-01|√|√|×|×||
-|RxDemo-02|√|√|√|×||
-|RxDemo-03|√|√|√|√||
-|RxDemo-04|√|√|√|√||
-|RxExample|√|√|√|√|原始版本的 RxSwift |
+[RxSwift 核心实现原理](http://chuquan.me/2020/08/24/rxswift-core-implement/)

@@ -311,7 +311,7 @@ let observer = Observer<Int> { (event) in
     }
 }
 
-let disposable = observable.map { $0 * 2 }.map { $0 + 1 }.subscribe(observer: observer)
+let disposable = observable.map { $0 * 2 }.subscribe(observer: observer)
 
 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
     disposable.dispose()
