@@ -158,4 +158,4 @@ fastlane/*
 .gitattributes
 
 BuildInfo
-
+timeline.xctimeline

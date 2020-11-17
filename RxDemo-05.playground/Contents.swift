@@ -52,8 +52,6 @@ protocol ObservableType {
     func asObservable() -> Observable<Element>
 }
 
-
-
 class Observable<Element>: ObservableType {
     // 抽象类
 //    // 定义 发布事件 的闭包，有子类来定义
@@ -132,46 +130,6 @@ class CompositeDisposable: Disposable {
     }
 }
 
-//class Sink<O: ObserverType>: Disposable {
-//    private var _disposed: Bool = false
-//    private let _forward: O
-//    private let _eventGenerator: (Observer<O.Element>) -> Disposable
-//    private let _composite = CompositeDisposable()
-//
-//    init(forward: O, eventGenerator: @escaping (Observer<O.Element>) -> Disposable) {
-//        _forward = forward
-//        _eventGenerator = eventGenerator
-//    }
-//
-//    func run() {
-//        // 通过一个中间 Observer 接收原始事件
-//        // 根据 CompositionDisposable 的状态决定是否传递给原始 Observer
-//        let observer = Observer<O.Element>(forward)
-//        // 执行发布事件
-//        // 将返回值 Disposable 加入到 CompositeDisposable 中进行管理
-//        _composite.add(disposable: _eventGenerator(observer))
-//    }
-//
-//    private func forward(event: Event<O.Element>) {
-//        guard !_disposed else { return }
-//        // 事件传递给原始 observer
-//        print("Sink _forward = \(_forward)")
-//        _forward.on(event: event)
-//        // 通过 composite 管理 error、completed 时，自动取消订阅
-//        switch event {
-//        case .completed, .error(_):
-//            dispose()
-//        default:
-//            break
-//        }
-//    }
-//
-//    func dispose() {
-//        _disposed = true
-//        _composite.dispose()
-//    }
-//}
-
 class Sink<O: ObserverType>: Disposable {
     private var _disposed: Bool = false
     private let _forward: O
@@ -201,12 +159,13 @@ class Sink<O: ObserverType>: Disposable {
     }
 }
 
+// MARK: - Anonymous
+
 extension ObservableType {
     static func create(_ eventGenerator: @escaping (Observer<Element>) -> Disposable) -> Observable<Element> {
         return AnonymousObservable(eventGenerator: eventGenerator)
     }
 }
-
 
 class AnonymousObserver<O: ObserverType>: Sink<O>, ObserverType {
     typealias Element = O.Element
@@ -247,12 +206,13 @@ class AnonymousObservable<Element>: Producer<Element> {
     }
 }
 
+// MARK: - Map
+
 extension ObservableType {
     func map<Result>(_ transform: @escaping (Element) throws -> Result) -> Observable<Result> {
         return MapObservable(source: self.asObservable(), transform: transform)
     }
 }
-
 
 class MapObserver<Source, Result, O: ObserverType>: Sink<O>, ObserverType {
     typealias Element = Source

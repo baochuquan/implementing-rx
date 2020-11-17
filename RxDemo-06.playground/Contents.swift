@@ -181,6 +181,7 @@ class Disposer: Disposable {
     }
 }
 
+// MARK: - Anonymous
 
 extension ObservableType {
     static func create(_ eventGenerator: @escaping (Observer<Element>) -> Disposable) -> Observable<Element> {
@@ -228,12 +229,13 @@ class AnonymousObservable<Element>: Producer<Element> {
     }
 }
 
+// MARK: - Map
+
 extension ObservableType {
     func map<Result>(_ transform: @escaping (Element) throws -> Result) -> Observable<Result> {
         return MapObservable(source: self.asObservable(), transform: transform)
     }
 }
-
 
 class MapObserver<Source, Result, O: ObserverType>: Sink<O>, ObserverType {
     typealias Element = Source
@@ -281,8 +283,6 @@ class MapObservable<Source, Result>: Producer<Result> {
         return (sink: sink, subscription: subscription)
     }
 }
-
-
 
 
 // MARK: - Test
